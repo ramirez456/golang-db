@@ -1,9 +1,8 @@
 package main
 
 import (
+	"fmt"
 	_ "github.com/lib/pq"
-	"github.com/ramirez456/go-db/pkg/invoiceheader"
-	"github.com/ramirez456/go-db/pkg/invoiceitem"
 	"github.com/ramirez456/go-db/pkg/product"
 	"github.com/ramirez456/go-db/pkg/storage"
 	"log"
@@ -11,6 +10,8 @@ import (
 
 func main() {
 	storage.NewPostgresDB()
+	/*
+	//crer las bases de datos
 
 	storageProduct := storage.NewPsqlProduct(storage.Pool())
 	serviceProduct := product.NewService(storageProduct)
@@ -31,4 +32,16 @@ func main() {
 	if err := serviceInvoiceItem.Migrate(); err != nil {
 		log.Fatalf("InvoiItem.Migrate %v", err)
 	}
+	*/
+	storageProduct := storage.NewPsqlProduct(storage.Pool())
+	serviceProduct := product.NewService(storageProduct)
+	m := &product.Model{
+		Name: "curso de Base de datos con Go",
+		Price: 50,
+		Observations: "Este curso",
+	}
+	if err := serviceProduct.Create(m); err != nil{
+		log.Fatalf("Producto.Create %v", err)
+	}
+	fmt.Printf("%+v\n",m)
 }
