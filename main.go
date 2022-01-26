@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
 	_ "github.com/lib/pq"
-	"github.com/ramirez456/go-db/pkg/product"
+	"github.com/ramirez456/go-db/pkg/invoice"
+	"github.com/ramirez456/go-db/pkg/invoiceheader"
+	"github.com/ramirez456/go-db/pkg/invoiceitem"
 	"github.com/ramirez456/go-db/pkg/storage"
 	"log"
 )
@@ -90,6 +91,8 @@ func main() {
 	fmt.Println("Create success") /*
 
  */
+/*
+//Delete
 
 	storageProduct := storage.NewPsqlProduct(storage.Pool())
 	serviceProduct := product.NewService(storageProduct)
@@ -99,4 +102,26 @@ func main() {
 		log.Fatalf("Product delete by id %v",err)
 	}
 	fmt.Println("Delete success")
+*/
+	storageHeader := storage.NewPsqlInvoiceHeader(storage.Pool())
+	storageItems := storage.NewPsqlInvoiceItem( storage.Pool())
+
+	storageInvoice := storage.NewPsqlInvoice(
+		storage.Pool(),
+		storageHeader,
+		storageItems,
+		)
+	m := &invoice.Model{
+		Header: &invoiceheader.Model{
+			Client: "Wings Houston Ramirez Martel",
+		},
+		Items: invoiceitem.Models{
+			 &invoiceitem.Model{ProductID: 1},
+			 &invoiceitem.Model{ProductID: 99},
+		},
+	}
+	serviceInvoice := invoice.NewService(storageInvoice)
+	if err := serviceInvoice.Create(m); err != nil {
+		log.Fatalf("invoice.Create: %v", err)
+	}
 }
