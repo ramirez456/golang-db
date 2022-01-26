@@ -17,10 +17,22 @@ const(
 	)`
 	psqlCreateProduct =  `INSERT INTO 
 	products(name, observations, price, created_at)
-	VALUES($1, $2, $3, $4) RETURNING id`;
+	VALUES($1, $2, $3, $4) RETURNING id`
+
+	psqlGetAllProduct = `SELECT id, name, observations, price, 
+	created_at, updated_at
+	FROM products`
+	psqlGetProductByID = psqlGetAllProduct + " WHERE id = $1"
+	psqlUpdateProduct  = `UPDATE products SET name = $1, observations = $2,
+	price = $3, updated_at = $4 WHERE id = $5`
+	psqlDeleteProduct = `DELETE FROM products WHERE id = $1`
 )
 type PsqlProduct struct {
 	db *sql.DB
+}
+
+type scanner interface {
+	Scan(dest ...interface{}) error
 }
 
 func NewPsqlProduct(db *sql.DB) *PsqlProduct {
@@ -55,3 +67,100 @@ func NewPsqlProduct(db *sql.DB) *PsqlProduct {
 	 fmt.Println("Create execute Product")
 	 return nil
  }
+
+func (p *PsqlProduct) GetAll() (product.Models, error){
+	stmt, err := p.db.Prepare(psqlGetAllProduct)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+	 rows, err := stmt.Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	ms := make(product.Models,0)
+	for rows.Next() {
+		m, err := scanRowProduct(rows)
+		if err != nil {
+			return nil, err
+		}
+		ms = append(ms, m)
+
+	}
+	if err :=rows.Err(); err != nil {
+		return nil, err
+	}
+	return ms, nil
+}
+
+func (p *PsqlProduct) GetByID(id uint) (*product.Model, error){
+	stmt, err := p.db.Prepare(psqlGetProductByID)
+	if err != nil {
+		return  &product.Model{}, err
+	}
+	defer  stmt.Close()
+	return scanRowProduct(stmt.QueryRow(id))
+}
+
+func (p *PsqlProduct) Update(m *product.Model) error{
+	stmt, err := p.db.Prepare(psqlUpdateProduct)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	res, err := stmt.Exec(
+		m.Name,
+		stringToNull(m.Observations),
+		m.Price,
+		timeToNull(m.UpdatedAt),
+		m.ID,
+	)
+	if err != nil {
+		return err
+	}
+	resAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if resAffected == 0 {
+		return fmt.Errorf("no existe el producto con id: %d", m.ID)
+	}
+
+	fmt.Println("se actualizó el producto correctamente")
+	return nil
+}
+func (p *PsqlProduct) Delete(id uint) error{
+	stmt, err := p.db.Prepare(psqlDeleteProduct)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func scanRowProduct(s scanner) (*product.Model, error) {
+	m := &product.Model{}
+	observationNull := sql.NullString{}
+	updateAtNull  := sql.NullTime{}
+	err := s.Scan(
+		&m.ID,
+		&m.Name,
+		&observationNull,
+		&m.Price,
+		&m.CreatedAt,
+		&updateAtNull,
+	)
+	if err != nil {
+		return nil, err
+	}
+	m.Observations = observationNull.String
+	m.UpdatedAt = updateAtNull.Time
+	return m,   nil
+}
