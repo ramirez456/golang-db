@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 	_ "github.com/joho/godotenv/autoload"
+	_ "github.com/go-sql-driver/mysql"
 )
 //sigleton creacion
 var(
@@ -31,6 +32,26 @@ func NewPostgresDB(){
 	once.Do(func() {
 		var err error
 		db, err = sql.Open("postgres", url)
+		if err != nil {
+			log.Fatalf("can't open db: %v",err)
+		}
+
+		if err = db.Ping(); err != nil {
+			log.Fatalf("can't open db: %v",err)
+		}
+		fmt.Println("Conectado a postgres")
+	})
+}
+
+func NewMySQLDB(){
+	loadEnv()
+	dbUser := os.Getenv("DB_USERNAME")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbDatabase := os.Getenv("DB_DATABASE")
+	url := dbUser+":"+dbPassword+"@/"+dbDatabase
+	once.Do(func() {
+		var err error
+		db, err = sql.Open("mysql", url)
 		if err != nil {
 			log.Fatalf("can't open db: %v",err)
 		}
