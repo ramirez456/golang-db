@@ -3,20 +3,34 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"github.com/joho/godotenv"
 	"log"
+	"os"
 	"sync"
 	"time"
+	_ "github.com/joho/godotenv/autoload"
 )
 //sigleton creacion
 var(
 	db *sql.DB
 	once sync.Once
 )
+func loadEnv(){
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("Error loading .env")
+	}
+}
 
 func NewPostgresDB(){
+	loadEnv()
+	dbUser := os.Getenv("DB_USERNAME")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbDatabase := os.Getenv("DB_DATABASE")
+	url := "postgres://"+dbUser+":"+dbPassword+"@localhost:5432/"+dbDatabase+"?sslmode=disable"
 	once.Do(func() {
 		var err error
-		db, err = sql.Open("postgres", "postgres://maxhoustonramirezmartel:ebcnemj987@localhost:5432/mongo-go?sslmode=disable")
+		db, err = sql.Open("postgres", url)
 		if err != nil {
 			log.Fatalf("can't open db: %v",err)
 		}
