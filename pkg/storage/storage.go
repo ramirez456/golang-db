@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/joho/godotenv"
+	"github.com/ramirez456/go-db/pkg/product"
 	"log"
 	"os"
 	"sync"
@@ -16,6 +17,23 @@ var(
 	db *sql.DB
 	once sync.Once
 )
+
+type  Driver string
+
+const(
+	MySQL Driver = "MYSQL"
+	Postgres Driver = "POSTGRES"
+)
+
+func New(d Driver) {
+	switch d {
+	case MySQL:
+		newMySQLDB()
+	case Postgres:
+		newPostgresDB()
+	}
+}
+
 func loadEnv(){
 	err := godotenv.Load(".env")
 	if err != nil {
@@ -23,11 +41,11 @@ func loadEnv(){
 	}
 }
 
-func NewPostgresDB(){
+func newPostgresDB(){
 	loadEnv()
-	dbUser := os.Getenv("DB_USERNAME")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbDatabase := os.Getenv("DB_DATABASE")
+	dbUser := os.Getenv("PSQL_DB_USERNAME")
+	dbPassword := os.Getenv("PSQL_DB_PASSWORD")
+	dbDatabase := os.Getenv("PSQL_DB_DATABASE")
 	url := "postgres://"+dbUser+":"+dbPassword+"@localhost:5432/"+dbDatabase+"?sslmode=disable"
 	once.Do(func() {
 		var err error
@@ -43,12 +61,15 @@ func NewPostgresDB(){
 	})
 }
 
-func NewMySQLDB(){
+func newMySQLDB(){
 	loadEnv()
-	dbUser := os.Getenv("DB_USERNAME")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbDatabase := os.Getenv("DB_DATABASE")
-	url := dbUser+":"+dbPassword+"@/"+dbDatabase
+	dbUser := os.Getenv("MYSQL_DB_USERNAME")
+	dbPassword := os.Getenv("MYSQL_DB_PASSWORD")
+	dbDatabase := os.Getenv("MYSQL_DB_DATABASE")
+	dbHost := os.Getenv("MYSQL_DB_HOST")
+	dbPort  := os.Getenv("MYSQL_DB_PORT")
+
+	url := dbUser+":"+dbPassword+"@tcp("+dbHost+":"+dbPort+")/"+dbDatabase+"?parseTime=true"
 	once.Do(func() {
 		var err error
 		db, err = sql.Open("mysql", url)
@@ -59,7 +80,7 @@ func NewMySQLDB(){
 		if err = db.Ping(); err != nil {
 			log.Fatalf("can't open db: %v",err)
 		}
-		fmt.Println("Conectado a postgres")
+		fmt.Println("Conectado a mysql")
 	})
 }
 
@@ -80,4 +101,15 @@ func timeToNull(t  time.Time) sql.NullTime{
 		null.Valid = true
 	}
 	return null
+}
+
+func DAOProduct(driver Driver)(product.Storage, error){
+	switch driver {
+	case Postgres:
+		return newPsqlProduct(db), nil
+	case MySQL:
+		return newMySQLProduct(db), nil
+	default:
+		return nil, fmt.Errorf("driver not implement")
+	}
 }

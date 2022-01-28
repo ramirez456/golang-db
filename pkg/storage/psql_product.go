@@ -27,18 +27,19 @@ const(
 	price = $3, updated_at = $4 WHERE id = $5`
 	psqlDeleteProduct = `DELETE FROM products WHERE id = $1`
 )
-type PsqlProduct struct {
+type psqlProduct struct {
 	db *sql.DB
 }
 
-type scanner interface {
+ type scanner interface {
 	Scan(dest ...interface{}) error
-}
+ }
 
-func NewPsqlProduct(db *sql.DB) *PsqlProduct {
-	return &PsqlProduct{db  }
-}
- func (p *PsqlProduct) Migrate() error{
+ func newPsqlProduct(db *sql.DB) *psqlProduct {
+	return &psqlProduct{db  }
+ }
+
+ func (p *psqlProduct) Migrate() error{
  	stmt, err := p.db.Prepare(psqlMigrateProduct)
 	 if err != nil {
 		 return err
@@ -52,7 +53,8 @@ func NewPsqlProduct(db *sql.DB) *PsqlProduct {
 	 fmt.Println("Migration execute Product")
 	 return nil
  }
- func (p *PsqlProduct) Create(m *product.Model) error {
+
+ func (p *psqlProduct) Create(m *product.Model) error {
 
  	stmt, err := p.db.Prepare(psqlCreateProduct)
 	if err != nil {
@@ -68,7 +70,7 @@ func NewPsqlProduct(db *sql.DB) *PsqlProduct {
 	 return nil
  }
 
-func (p *PsqlProduct) GetAll() (product.Models, error){
+ func (p *psqlProduct) GetAll() (product.Models, error){
 	stmt, err := p.db.Prepare(psqlGetAllProduct)
 	if err != nil {
 		return nil, err
@@ -94,7 +96,7 @@ func (p *PsqlProduct) GetAll() (product.Models, error){
 	return ms, nil
 }
 
-func (p *PsqlProduct) GetByID(id uint) (*product.Model, error){
+ func (p *psqlProduct) GetByID(id uint) (*product.Model, error){
 	stmt, err := p.db.Prepare(psqlGetProductByID)
 	if err != nil {
 		return  &product.Model{}, err
@@ -103,7 +105,7 @@ func (p *PsqlProduct) GetByID(id uint) (*product.Model, error){
 	return scanRowProduct(stmt.QueryRow(id))
 }
 
-func (p *PsqlProduct) Update(m *product.Model) error{
+ func (p *psqlProduct) Update(m *product.Model) error{
 	stmt, err := p.db.Prepare(psqlUpdateProduct)
 	if err != nil {
 		return err
@@ -130,7 +132,8 @@ func (p *PsqlProduct) Update(m *product.Model) error{
 	fmt.Println("se actualizó el producto correctamente")
 	return nil
 }
-func (p *PsqlProduct) Delete(id uint) error{
+
+ func (p *psqlProduct) Delete(id uint) error{
 	stmt, err := p.db.Prepare(psqlDeleteProduct)
 	if err != nil {
 		return err
@@ -143,9 +146,9 @@ func (p *PsqlProduct) Delete(id uint) error{
 	}
 
 	return nil
-}
+ }
 
-func scanRowProduct(s scanner) (*product.Model, error) {
+ func scanRowProduct(s scanner) (*product.Model, error) {
 	m := &product.Model{}
 	observationNull := sql.NullString{}
 	updateAtNull  := sql.NullTime{}

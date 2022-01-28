@@ -42,6 +42,7 @@ func (s *Service) Create(m *Model) error{
 	return s.storage.Create(m)
 }
 
+
 func (s *Service) GetAll() (Models, error) {
 	return s.storage.GetAll()
 }
